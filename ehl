@@ -1,0 +1,125 @@
+#!/bin/bash
+
+CONFIGFILE=/etc/ehl.conf
+
+SERIAL=""
+PORT=0
+
+DEVICE="$1"
+STATE="$2"
+
+if [ "$(basename $0)" == "ehl" ]
+then
+	echo "$0: Error: Incorrect usage." >&2
+	echo "Use pdu or serial as basename."
+	exit 1
+fi
+
+if [ ! -e "$CONFIGFILE" ]
+then
+	echo "$0: Error: /etc/ehl.conf not found" >&2
+	exit 2
+fi
+
+if [ "$(basename $0)" == "serial" ]
+then
+	if [ "$#" -gt 1 ]
+	then
+		echo "$0: Error: Too many arguments." >&2
+		echo "Usage: serial [NAME]"
+       		exit 3
+	elif [ "$#" -lt 1 ]
+	then	
+		echo "$0: Error: Arguments required." >&2
+		echo "Usage: serial [NAME]"
+		exit 4
+	fi
+elif [ "$(basename $0)" == "pdu" ]
+then
+        if [ "$#" -gt 2 ]
+        then
+                echo "$0: Error: Too many arguments." >&2
+                echo "Usage: pdu [NAME] [COMMAND]"
+                exit 5
+        elif [ "$#" -lt 2 ]
+	then
+                echo "$0: Error: Arguments required." >&2
+                echo "Usage: pdu [NAME] [COMMAND]"
+        	exit 6
+	fi
+        
+fi
+
+LINE="$(grep -wE "^$1" $CONFIGFILE)"
+IFS=":" read -a STR <<< "$LINE"
+
+if [ -z "$LINE" -o "$1" != "${STR[0]}" ]
+then
+	echo "$0: Error: No results found." >&2
+        if [ "$(basename $0)" == "serial" ]
+        then
+                echo "Usage: serial [NAME]"
+        else
+                echo "Usage: pdu [NAME] [COMMAND]"
+        fi
+	exit 7
+fi
+
+if [ "$(basename $0)" == "serial" ]
+then
+
+	if [ "${#STR[@]}" -lt 5 ] #if lacking data for serial (ex: fans)
+	then
+		echo "$0: Error: Name found, but serial data does not exist." >&2
+		exit 8
+	fi
+
+	SERIAL="${STR[3]}"
+	PORT="${STR[4]}"
+	echo "Connecting to terminal server port $PORT:"
+	ssh ostep:$((7000 + $PORT))@$SERIAL
+elif [ "$(basename $0)" == "pdu" ]
+then
+	if [ "$STATE" == "" ]
+	then
+		echo "$0: Error: Arguments required." >&2
+		echo "Usage: pdu [NAME] [COMMAND]"	
+		exit 9
+	fi	
+
+	UNIT="${STR[1]}"
+	OUTLET="${STR[2]}"
+	
+	MODE=WRITE
+	case "${STATE}" in
+        	on)                     STATE=1;;
+	        off)                    STATE=0;;
+	        cycle)          STATE=2;;
+	        0|1|2)          : ;;
+        	read|check|status|state)        MODE=READ;;
+	        *)              echo "$0: Error: State '$STATE' unknown." >&2; exit 10;;
+	esac
+
+	if [ ! -x /usr/bin/snmpset ]
+	then
+        	echo "$0: Error: /usr/bin/snmpset is not installed. Install net-snmp-utils." >&2
+	        exit 10
+	fi
+
+	if [ "${MODE}" = "WRITE" ]
+	then
+        	echo "Setting $DEVICE to $2 (outlet $OUTLET on $UNIT state $STATE)."
+        	snmpset -c ostep -v 1 ${UNIT} .1.3.6.1.4.1.13742.4.1.2.2.1.3.${OUTLET} i ${STATE}
+	else
+        	echo "Getting state of $DEVICE (outlet $OUTLET on $UNIT)."
+	        snmpget -c ostep -v 1 ${UNIT} .1.3.6.1.4.1.13742.4.1.2.2.1.3.${OUTLET}.1.3.6.1.4.1.13742.4.1.2.2.1.3.${OUTLET}
+	fi	
+
+	if [ "$?" -gt 0 ]
+        then
+		echo "$0: Error: snmpget call failed." >&2
+		exit 11
+        fi
+
+fi
+

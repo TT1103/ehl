@@ -1,0 +1,31 @@
+.TH SERIAL 8
+.SH NAME
+serial \- access machines in the EHL through a serial connection
+.br
+.SH SYNOPSIS
+.B serial
+.IR name
+.br
+.SH DESCRIPTION
+.B serial
+allows to connect to a machine in the Enterprise Hyperscale Lab through a serial connection.
+.br
+.SH EXAMPLES
+.B serial
+.IR x1
+.br
+.RS
+Access the x1 machine in the EHL through a serial connection.
+.br
+.RE
+.SH FILES
+.IR /etc/ehl.conf
+.br
+.RS
+The configuration file for the serial and pdu functionality. The format of the file is name:pdu:outlet:cabinet:port.
+.RE
+.SH AUTHOR
+Tiger Zhao
+.IR <zhao.tiger@outlook.com>
+.SH SEE ALSO
+ehl(8), pdu(8)            

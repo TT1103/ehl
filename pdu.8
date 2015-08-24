@@ -1,0 +1,29 @@
+.TH PDU 8
+.SH NAME
+pdu \- access the power supply to the machines in the EHL
+.SH SYNOPSIS
+.B pdu
+.IR name
+.IR command
+.SH DESCRIPTION
+.B pdu
+allows to receive power statuses and modify power statuses of the machines in the Enterprise Hyperscale Lab.
+.SH EXAMPLES
+.B pdu
+.IR x1
+.IR status
+.br
+.RS
+Check the power status of the x1 machine in the EHL.
+.RE
+.SH FILES
+.IR /etc/ehl.conf
+.br
+.RS
+The configuration file for the serial and pdu functionality. The format of the file is name:pdu:outlet:cabinet:port.
+.RE
+.SH AUTHOR
+Tiger Zhao
+.IR <zhao.tiger@outlook.com>
+.SH SEE ALSO
+ehl(8), serial(8)
